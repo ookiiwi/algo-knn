@@ -5,46 +5,24 @@ Created on Thu Mar 11 15:39:23 2021
 @author: zhadrami
 """
 
-import pandas
 from math import sqrt
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider
 
-iris_data = [[]]
-
-def ClassementDesDistances(t):
-    """
-    Tri par insertion
-    """
-
-    i = 0
-    j = 1
-    k = 0
-    
-    while j < len(t):
-        i = j-1
-        k = t[j]
-        
-        while i >= 0 and t[i][1] > k[1]:
-            t[i+1] = t[i]
-            i -= 1
-            
-        t[i+1] = k
-        j += 1
+iris_data = []
+iris_type = []
 
 def ChargeFichierTris():
     global iris_data
+    global iris_type
 
     with open("iris.csv", mode='r') as f:
+        f.readline()
+        iris_type = [x.strip("\n") for x in f.readline().split(',')]
+
         for i in f:
-            try:
                 petal_length, petal_width, spece = i.split(',')
-
-                if len(iris_data)-1 < int(spece):
-                    iris_data.append([])
-
-                iris_data[int(spece)].append((float(petal_length), float(petal_width)))
-            except:     #ignore premiere ligne du fichier
-                pass
+                iris_data.append((float(petal_length), float(petal_width), int(spece)))
 
 def Distance(xa, xb, ya, yb):
     return sqrt((xb-xa)**2 + (yb-ya)**2)
@@ -52,45 +30,55 @@ def Distance(xa, xb, ya, yb):
 def ListeDesDistances(x, y):
     distances = []
     for i in range(len(iris_data)):
-        for j in range(len(iris_data[i])):
-            d = Distance(iris_data[i][j][0], x, iris_data[i][j][1], y)
-            distances.append((i, d))
+        d = Distance(iris_data[i][0], x, iris_data[i][1], y)
+        distances.append((d, iris_data[i][2]))
 
     return distances
 
 def TypeDUnIris(largeur, longueur, k):
     l = ListeDesDistances(longueur, largeur)
-    cnt = [0]
-    ClassementDesDistances(l)
+    l.sort()
+    cnt = {}
+
+    if k >= len(l):
+        print("Error : k is too high.")
+        k = len(l)
 
     for i in range(k):
-        try:
-            if l[i][0]+1 >= len(cnt):
-                cnt.append(0)
+        cnt[l[i][1]] = 1 if not cnt.get(l[i][1]) else cnt.get(l[i][1]) + 1
 
-            cnt[l[i][0]] += 1
-        except IndexError:
-            print("Error : k is too high")
-            break
-
-    cnt.sort()
-    return l[len(cnt)-1][0]
+    sorted(cnt.items(), key=lambda it: it[1])
+    return list(cnt)[0]
 
 def FormatForPlot(l):
     x = [[]]
     y = [[]]
+    
+    l.sort(key=lambda t: t[2])
 
     for i in range(len(l)):
-        for j in range(len(l[i])):
-            x[i].append(l[i][j][0])
-            y[i].append(l[i][j][1])
-        x.append([])
-        y.append([])
+        j = l[i][2]
 
+        if j > len(x)-1:
+            x.append([])
+            y.append([])
+        x[j].append(l[i][0])
+        y[j].append(l[i][1])
+        
     return x, y
 
+def update(val):
+    k = sliderk.val
+    longueur = sliderx.val
+    largeur = slidery.val
+    ptk.set_offsets((longueur, largeur))
+
+    prediction = TypeDUnIris(largeur, longueur, k)
+    txt="Résultat : "+iris_type[prediction]
+    res.set_text(txt)
+
 #valeurs
-longueur=2.5
+longueur=2
 largeur=0.75
 k=3
 #fin valeurs
@@ -98,26 +86,29 @@ k=3
 ChargeFichierTris()
 x, y = FormatForPlot(iris_data)
 
+fig, ax = plt.subplots()
+plt.subplots_adjust(left=0.25, bottom=0.25)
+
 plt.axis('equal')
-plt.scatter(x[0], y[0], color='g', label='setosa')
-plt.scatter(x[1], y[1], color='r', label='versicolor')
-plt.scatter(x[2], y[2], color='b', label='virginica')
-plt.scatter(longueur, largeur, color='k')
+plt.scatter(x[0], y[0], color='g', label=iris_type[0])
+plt.scatter(x[1], y[1], color='r', label=iris_type[1])
+plt.scatter(x[2], y[2], color='b', label=iris_type[2])
+ptk = plt.scatter(longueur, largeur, color='k')
 plt.legend()
 
-prediction = TypeDUnIris(largeur, longueur, k)
+res = plt.text(3,0.1, '', fontsize=12) #init text
 
-#Affichage résultats
-txt="Résultat : "
-if prediction==0:
-  txt=txt+"setosa"
-if prediction==1:
-  txt=txt+"versicolor"
-if prediction==2:
-  txt=txt+"virginica"
-plt.text(3,0.5, f"largeur : {largeur} cm longueur : {longueur} cm", fontsize=12)
-plt.text(3,0.3, f"k : {k}", fontsize=12)
-plt.text(3,0.1, txt, fontsize=12)
-#fin affichage résultats
+axcolor = 'lightgoldenrodyellow'
+axk = plt.axes([0.25, 0.15, 0.65, 0.03], facecolor=axcolor)
+axx = plt.axes([0.25, 0.10, 0.65, 0.03], facecolor=axcolor)
+axy = plt.axes([0.25, 0.05, 0.65, 0.03], facecolor=axcolor)
 
+sliderk = Slider(axk, 'k', 1, 10, k, valstep=1)
+sliderx = Slider(axx, 'x', 0, 10, longueur)
+slidery = Slider(axy, 'y', 0, 10, largeur)
+sliderk.on_changed(update)
+sliderx.on_changed(update)
+slidery.on_changed(update)
+
+update(1)
 plt.show()
