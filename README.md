@@ -2,7 +2,7 @@
 
 Small high-school project to discover the k nearest neighbors algorithm with the iris dataset.
 
-I only changed the project structure to enable installation with pip and thus added slit modifications in [gui.py](src/algo_knn/gui.py) to introduce main function.
+I only changed the project structure to enable installation with pip and thus added slight modifications in [gui.py](src/algo_knn/gui.py) to introduce main function.
 
 ## Installation
 
